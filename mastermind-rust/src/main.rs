@@ -157,31 +157,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stdin = io::stdin();
         stdin.read_line(&mut buffer)?;
 
-        let guess_result =
-            buffer
-                .trim_end()
-                .replace(",", "")
-                .split(" ")
-                .try_fold(Vec::new(), |mut acc, s| {
-                    match s {
-                        "Red" => acc.push(Color::Red),
-                        "Green" => acc.push(Color::Green),
-                        "Blue" => acc.push(Color::Blue),
-                        "Yellow" => acc.push(Color::Yellow),
-                        "Purple" => acc.push(Color::Purple),
-                        "White" => acc.push(Color::White),
-                        _ => return Err(format!("Invalid color: {}", s)),
-                    }
-                    Ok(acc)
-                });
+        let guess_result: Result<Vec<Color>, _> = buffer
+            .trim_end()
+            .replace(",", "")
+            .split(" ")
+            .map(|s| s.parse::<Color>())
+            .collect();
 
-        let guess = match guess_result {
+        let guess: ColorSequence = match guess_result {
             Ok(colors) => {
                 if colors.len() != 4 {
                     println!("Please enter exactly 4 colors");
                     continue;
                 }
-                colors
+                ColorSequence {
+		    colors
+		}
             }
             Err(e) => {
                 println!("{}", e);
