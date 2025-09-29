@@ -1,4 +1,5 @@
 use rand::prelude::IndexedRandom;
+use std::str::FromStr;
 use std::fmt::Debug;
 use std::io;
 
@@ -10,6 +11,17 @@ enum Color {
     Yellow,
     Purple,
     White,
+}
+
+impl Color {
+    const ALL: &[Color] = &[
+        Color::Red,
+        Color::Green,
+        Color::Blue,
+        Color::Yellow,
+        Color::Purple,
+        Color::White,
+    ];
 }
 
 impl Debug for Color {
@@ -25,7 +37,62 @@ impl Debug for Color {
     }
 }
 
-type ColorSequence = Vec<Color>;
+impl FromStr for Color {
+    type Err = ColorSequenceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Red" => Ok(Color::Red),
+            "Green" => Ok(Color::Green),
+            "Blue" => Ok(Color::Blue),
+            "Yellow" => Ok(Color::Yellow),
+            "Purple" => Ok(Color::Purple),
+            "White" => Ok(Color::White),
+            _ => Err(ColorSequenceError {
+                message: format!("Invalid color: {}", s)
+            }),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ColorSequence {
+    colors: Vec<Color>
+}
+
+impl FromIterator<Color> for ColorSequence {
+    fn from_iter<T: IntoIterator<Item = Color>>(iter: T) -> Self {
+        ColorSequence {
+            colors: iter.into_iter().collect(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ColorSequenceError {
+    message: String
+}
+
+impl std::fmt::Display for ColorSequenceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl FromStr for ColorSequence {
+    type Err = ColorSequenceError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let colors: Result<Vec<Color>, ColorSequenceError> = s
+            .split(" ")
+            .map(|x| x.parse())
+            .collect();
+
+        let colors = colors?;
+        Ok(ColorSequence { colors })
+    }
+
+}
+
 
 struct Board {
     secret: ColorSequence,
@@ -34,29 +101,20 @@ struct Board {
 
 impl Board {
     fn generate_secret() -> ColorSequence {
-        let mut secret = Vec::new();
-        let colors = vec![
-            Color::Red,
-            Color::Green,
-            Color::Blue,
-            Color::Yellow,
-            Color::Purple,
-            Color::White,
-        ];
-        for _ in 0..4 {
-            secret.push(*colors.choose(&mut rand::rng()).unwrap());
-        }
-        secret
+        std::iter::repeat_with(
+	    || *Color::ALL.choose(&mut rand::rng()).unwrap())
+            .take(4)
+            .collect()
     }
-
+    
     fn validate_guess(&self, guess: ColorSequence) -> Feedback {
         let mut match_color = 0;
         let mut match_color_and_position = 0;
 
-        for (i, color) in guess.iter().enumerate() {
-            if *color == self.secret[i] {
+        for (i, color) in guess.colors.iter().enumerate() {
+            if *color == self.secret.colors[i] {
                 match_color_and_position += 1;
-            } else if self.secret.contains(color) {
+            } else if self.secret.colors.contains(color) {
                 match_color += 1;
             }
         }
@@ -91,10 +149,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ]
     );
     let mut attempts = 0;
+    let mut buffer;
     while attempts < b.max_guesses {
         println!("Attempt {} of {}", attempts + 1, b.max_guesses);
         println!("Enter a guess: ");
-        let mut buffer = String::new();
+        buffer = String::new();
         let stdin = io::stdin();
         stdin.read_line(&mut buffer)?;
 
@@ -144,6 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             feedback.match_color, feedback.match_color_and_position
         );
 
+	buffer.clear();
         attempts += 1;
     }
     println!("Computer wins");
