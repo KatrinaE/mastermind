@@ -130,6 +130,24 @@ struct Feedback {
     match_color_and_position: u8,
 }
 
+impl std::fmt::Display for Feedback {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	if self.is_win() {
+	   return write!(f, "Congratulations! You guessed the secret code!");
+	} else {
+	    write!(f, "Feedback: {} color matches, {} color and position matches",
+		   self.match_color, self.match_color_and_position)
+	}
+
+    }
+}
+
+impl Feedback {
+    fn is_win(&self) -> bool {
+	self.match_color_and_position == 4
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let b = Board {
         secret: Board::generate_secret(),
@@ -180,20 +198,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
-
         println!("You guessed: {:?}", guess);
 
         let feedback = b.validate_guess(guess);
-
-        if feedback.match_color_and_position == 4 {
-            println!("Congratulations! You guessed the secret code!");
+        println!("{}", feedback);
+        if feedback.is_win() {
             return Ok(());
         }
-
-        println!(
-            "Feedback: {} color matches, {} color and position matches",
-            feedback.match_color, feedback.match_color_and_position
-        );
 
 	buffer.clear();
         attempts += 1;
