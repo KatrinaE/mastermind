@@ -180,6 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         };
 
+
         println!("You guessed: {:?}", guess);
 
         let feedback = b.validate_guess(guess);
